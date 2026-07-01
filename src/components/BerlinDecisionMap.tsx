@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
@@ -231,19 +231,20 @@ function toRecommendedPlace(place: MapPlace): RecommendedPlace {
 
 function RecenterMap({ decision }: { decision: PlaceDecision }) {
   const map = useMap();
+  const previousOriginKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (decision.places.length === 0) {
-      map.setView([decision.origin.lat, decision.origin.lng], 13);
+    const originKey = `${decision.origin.lat.toFixed(6)},${decision.origin.lng.toFixed(6)}`;
+
+    if (previousOriginKey.current === originKey) {
       return;
     }
 
-    const bounds = L.latLngBounds([
-      [decision.origin.lat, decision.origin.lng] as [number, number],
-      ...decision.places.map((place) => [place.lat, place.lng] as [number, number]),
-    ]);
-    map.fitBounds(bounds, { padding: [82, 82], maxZoom: 15 });
-  }, [decision, map]);
+    previousOriginKey.current = originKey;
+    map.flyTo([decision.origin.lat, decision.origin.lng], Math.max(map.getZoom(), 14), {
+      duration: 0.45,
+    });
+  }, [decision.origin.lat, decision.origin.lng, map]);
 
   return null;
 }
@@ -329,9 +330,26 @@ function MapControls({
   onUseLiveLocation: () => void;
 }) {
   const map = useMap();
+  const controlsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!controlsRef.current) {
+      return;
+    }
+
+    L.DomEvent.disableClickPropagation(controlsRef.current);
+    L.DomEvent.disableScrollPropagation(controlsRef.current);
+  }, []);
 
   return (
-    <div className="pointer-events-auto absolute right-4 top-36 z-[520] flex flex-col gap-3 sm:right-6">
+    <div
+      ref={controlsRef}
+      className="pointer-events-auto absolute right-4 top-36 z-[520] flex flex-col gap-3 sm:right-6"
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <button
         type="button"
         className="wg-control"
