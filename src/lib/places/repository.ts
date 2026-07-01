@@ -67,7 +67,7 @@ export async function getNearbyPlaces(
 }
 
 export async function filterPlaces(params: FilterPlacesParams): Promise<Place[]> {
-  const limit = Math.min(params.limit ?? 500, 1000);
+  const limit = Math.min(params.limit ?? 500, 10000);
   const offset = params.offset ?? 0;
   const query = params.query?.trim().toLowerCase();
   const places = await getAllPlaces();

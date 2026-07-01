@@ -39,6 +39,19 @@ type RecommendedPlace = {
   reason: string;
 };
 
+type MapPlace = {
+  id: string;
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  phone?: string;
+  website?: string;
+  cuisine?: string[];
+  openingHours?: string;
+};
+
 type PlaceDecision = {
   origin: Coordinates;
   originMode: OriginMode;
@@ -60,6 +73,8 @@ const initialDecision: PlaceDecision = {
   places: [],
   attribution: "Place data © OpenStreetMap contributors",
 };
+
+const cityLayerCategories = ["cafe", "coffee_shop", "restaurant"];
 
 const categoryColors: Record<string, { pin: string; glow: string }> = {
   cafe: { pin: "#38bdf8", glow: "rgba(56, 189, 248, 0.34)" },
@@ -119,6 +134,18 @@ function createNavigateUrl(place: RecommendedPlace) {
   )}`;
 }
 
+function toRecommendedPlace(place: MapPlace): RecommendedPlace {
+  return {
+    ...place,
+    distanceKm: 0,
+    distance: "Berlin",
+    score: 0,
+    vibe: [place.category.replaceAll("_", " ")],
+    price: place.category === "restaurant" ? "€€" : "€",
+    reason: "OpenStreetMap place shown on the Berlin coffee and restaurant layer.",
+  };
+}
+
 function RecenterMap({ decision }: { decision: PlaceDecision }) {
   const map = useMap();
 
@@ -134,6 +161,48 @@ function RecenterMap({ decision }: { decision: PlaceDecision }) {
     ]);
     map.fitBounds(bounds, { padding: [82, 82], maxZoom: 15 });
   }, [decision, map]);
+
+  return null;
+}
+
+function CityPlaceLayer({
+  places,
+  onSelect,
+}: {
+  places: MapPlace[];
+  onSelect: (place: RecommendedPlace) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const renderer = L.canvas({ padding: 0.5 });
+    const layer = L.layerGroup().addTo(map);
+
+    for (const place of places) {
+      const color =
+        place.category === "restaurant"
+          ? "#f87171"
+          : place.category === "coffee_shop"
+            ? "#60a5fa"
+            : "#38bdf8";
+      const marker = L.circleMarker([place.lat, place.lng], {
+        renderer,
+        radius: place.category === "restaurant" ? 3.4 : 3,
+        color: "#ffffff",
+        weight: 0.55,
+        fillColor: color,
+        fillOpacity: 0.78,
+        opacity: 0.55,
+      });
+
+      marker.on("click", () => onSelect(toRecommendedPlace(place)));
+      marker.addTo(layer);
+    }
+
+    return () => {
+      layer.remove();
+    };
+  }, [map, onSelect, places]);
 
   return null;
 }
@@ -161,12 +230,14 @@ export default function BerlinDecisionMap() {
   const [origin, setOrigin] = useState<Coordinates>(berlinCenter);
   const [originMode, setOriginMode] = useState<OriginMode>("city");
   const [selectedPlace, setSelectedPlace] = useState<RecommendedPlace | null>(null);
+  const [cityPlaces, setCityPlaces] = useState<MapPlace[]>([]);
   const [isDeciding, setIsDeciding] = useState(false);
   const [locationMessage, setLocationMessage] = useState(
     "Click the map to drop a planning pin",
   );
 
   const topPlace = useMemo(() => decision.places[0] ?? null, [decision.places]);
+  const cityPlaceCount = cityPlaces.length;
 
   async function decide(
     nextQuery = query,
@@ -199,6 +270,37 @@ export default function BerlinDecisionMap() {
 
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCityPlaces() {
+      const responses = await Promise.all(
+        cityLayerCategories.map((category) =>
+          fetch(`/api/places?category=${category}&limit=5000`, {
+            signal: controller.signal,
+          }).then((response) => response.json() as Promise<{ places: MapPlace[] }>),
+        ),
+      );
+      const uniquePlaces = new Map<string, MapPlace>();
+
+      for (const response of responses) {
+        for (const place of response.places) {
+          uniquePlaces.set(place.id, place);
+        }
+      }
+
+      setCityPlaces([...uniquePlaces.values()]);
+    }
+
+    void loadCityPlaces().catch((error) => {
+      if ((error as Error).name !== "AbortError") {
+        console.error(error);
+      }
+    });
+
+    return () => controller.abort();
   }, []);
 
   function selectOrigin(nextOrigin: Coordinates, nextOriginMode: OriginMode) {
@@ -251,7 +353,7 @@ export default function BerlinDecisionMap() {
   }
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-[#08110f] text-white">
+    <main className="relative h-dvh w-full overflow-hidden bg-[#182320] text-white">
       <MapContainer
         center={[initialDecision.origin.lat, initialDecision.origin.lng]}
         zoom={13}
@@ -265,6 +367,7 @@ export default function BerlinDecisionMap() {
         />
         <RecenterMap decision={decision} />
         <OriginPicker onPick={selectOrigin} />
+        <CityPlaceLayer places={cityPlaces} onSelect={setSelectedPlace} />
         <Marker
           position={[decision.origin.lat, decision.origin.lng]}
           icon={createOriginIcon(decision.originMode)}
@@ -281,11 +384,11 @@ export default function BerlinDecisionMap() {
         ))}
       </MapContainer>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-black/72 via-black/18 to-transparent px-4 pb-12 pt-4 sm:px-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-[#17211f]/78 via-[#17211f]/22 to-transparent px-4 pb-12 pt-4 sm:px-6">
         <div className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center gap-3">
           <form
             onSubmit={handleSubmit}
-            className="flex min-h-14 flex-1 items-center gap-3 rounded-[28px] border border-white/12 bg-black/72 px-4 shadow-2xl shadow-black/30 backdrop-blur-xl"
+            className="flex min-h-14 flex-1 items-center gap-3 rounded-[28px] border border-white/14 bg-[#17211f]/82 px-4 shadow-2xl shadow-black/24 backdrop-blur-xl"
           >
             <Search className="h-5 w-5 shrink-0 text-white/64" aria-hidden="true" />
             <input
@@ -305,7 +408,7 @@ export default function BerlinDecisionMap() {
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/12 bg-black/68 backdrop-blur-xl transition hover:bg-black/82"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/14 bg-[#17211f]/78 backdrop-blur-xl transition hover:bg-[#22302d]/90"
               aria-label="Use live location"
               onClick={useLiveLocation}
             >
@@ -313,7 +416,7 @@ export default function BerlinDecisionMap() {
             </button>
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/12 bg-black/68 backdrop-blur-xl transition hover:bg-black/82"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/14 bg-[#17211f]/78 backdrop-blur-xl transition hover:bg-[#22302d]/90"
               aria-label="Reset to Berlin"
               onClick={resetToBerlin}
             >
@@ -321,17 +424,17 @@ export default function BerlinDecisionMap() {
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border border-white/10 bg-black/60 px-4 py-2 text-xs text-white/68 backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border border-white/12 bg-[#17211f]/72 px-4 py-2 text-xs text-white/72 backdrop-blur-xl">
           <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden="true" />
           <span className="min-w-0 truncate">
-            {locationMessage} · {decision.radiusKm} km radius · {decision.originMode} mode
+            {locationMessage} · {decision.radiusKm} km radius · {cityPlaceCount.toLocaleString()} coffee and restaurant pins
           </span>
         </div>
       </div>
 
       <section className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] px-3 pb-3 sm:px-6 sm:pb-6">
         <div className="mx-auto max-w-2xl">
-          <div className="pointer-events-auto overflow-hidden rounded-t-[28px] border border-white/12 bg-[#0b0d0c]/92 shadow-2xl shadow-black/50 backdrop-blur-2xl sm:rounded-[28px]">
+          <div className="pointer-events-auto overflow-hidden rounded-t-[28px] border border-white/14 bg-[#17211f]/94 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:rounded-[28px]">
             <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-white/22" />
             {selectedPlace ? (
               <div className="p-5 sm:p-6">

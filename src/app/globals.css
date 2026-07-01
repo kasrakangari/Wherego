@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050706;
+  --background: #182320;
   --foreground: #f7f8f5;
 }
 
@@ -28,12 +28,12 @@ a {
 }
 
 .leaflet-container {
-  background: #07100e;
+  background: #202d2a;
   font-family: inherit;
 }
 
 .leaflet-tile-pane {
-  filter: saturate(0.88) contrast(1.08) brightness(0.86);
+  filter: saturate(0.9) contrast(0.98) brightness(1.22);
 }
 
 .wherego-pin {
