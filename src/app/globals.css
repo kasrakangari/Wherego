@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #263936;
+  --background: #050505;
   --foreground: #f7f8f5;
 }
 
@@ -28,14 +28,13 @@ a {
 }
 
 .leaflet-container {
-  background: #d4ddd9;
+  background: #050505;
   font-family: inherit;
 }
 
 .leaflet-tile-pane {
-  filter: invert(0.82) hue-rotate(165deg) saturate(0.66) brightness(1.18)
-    contrast(0.86);
-  opacity: 0.94;
+  filter: saturate(0.82) contrast(1.05) brightness(1.1);
+  opacity: 0.98;
 }
 
 .wherego-pin {
@@ -46,7 +45,7 @@ a {
 .wherego-pin-button {
   display: grid;
   place-items: center;
-  border: 2px solid rgba(255, 255, 255, 0.92);
+  border: 2px solid rgba(255, 255, 255, 0.96);
   border-radius: 999px;
   color: white;
   cursor: pointer;
@@ -76,9 +75,9 @@ a {
   width: 30px;
   border: 2px solid rgba(255, 255, 255, 0.95);
   border-radius: 999px;
-  background: rgba(250, 204, 21, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow:
-    0 0 0 9px rgba(250, 204, 21, 0.18),
+    0 0 0 9px rgba(255, 255, 255, 0.18),
     0 12px 28px rgba(0, 0, 0, 0.4);
 }
 
@@ -86,7 +85,7 @@ a {
   height: 8px;
   width: 8px;
   border-radius: 999px;
-  background: #111111;
+  background: #0b0b0b;
 }
 
 .wherego-origin-live {
