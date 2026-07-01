@@ -38,6 +38,18 @@ export function parseIntent(query: string): Intent {
     intent.vibes.push("quiet", "study-friendly");
   }
 
+  if (/(cafe|coffee|espresso|latte)/.test(normalized)) {
+    intent.categories.push("cafe", "coffee_shop");
+    intent.tags.push("coffee", "cafe");
+    intent.vibes.push("cafe");
+  }
+
+  if (/(bakery|baker|bread|croissant|pastry)/.test(normalized)) {
+    intent.categories.push("bakery");
+    intent.tags.push("bakery");
+    intent.vibes.push("bakery");
+  }
+
   if (/(date|romantic)/.test(normalized)) {
     intent.categories.push("restaurant", "bar");
     intent.vibes.push("date", "romantic");

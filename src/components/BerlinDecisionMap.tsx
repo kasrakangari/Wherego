@@ -105,6 +105,14 @@ const categoryPills: { id: CategoryGroup; label: string }[] = [
   { id: "more", label: "More" },
 ];
 
+const categoryRecommendationQueries: Record<CategoryGroup, string> = {
+  all: "best food cafe restaurant nearby",
+  cafe: "best cafe nearby",
+  restaurant: "best restaurant nearby",
+  bakery: "best bakery nearby",
+  more: "best bar pub fast food nearby",
+};
+
 const categoryPillColors: Record<CategoryGroup, { background: string; text: string }> = {
   all: {
     background: "linear-gradient(135deg, #E11D24 0%, #FF7A00 100%)",
@@ -252,22 +260,58 @@ function CityPlaceLayer({
   useEffect(() => {
     const layer = L.layerGroup().addTo(map);
 
-    for (const place of places) {
-      const marker = L.marker([place.lat, place.lng], {
-        icon: createSmallPlacePinIcon(place),
-        keyboard: true,
-        title: place.name,
-        bubblingMouseEvents: false,
-      });
+    function getMarkerLimit() {
+      const zoom = map.getZoom();
 
-      marker.on("click", (event) => {
-        L.DomEvent.stopPropagation(event);
-        onSelect(toRecommendedPlace(place));
-      });
-      marker.addTo(layer);
+      if (zoom < 13) {
+        return 300;
+      }
+
+      if (zoom < 15) {
+        return 700;
+      }
+
+      return 1200;
     }
 
+    function renderVisibleMarkers() {
+      const bounds = map.getBounds().pad(0.18);
+      const center = map.getCenter();
+      const markerLimit = getMarkerLimit();
+      const visiblePlaces = places
+        .filter((place) => bounds.contains([place.lat, place.lng]))
+        .sort(
+          (a, b) =>
+            Math.abs(a.lat - center.lat) +
+            Math.abs(a.lng - center.lng) -
+            (Math.abs(b.lat - center.lat) + Math.abs(b.lng - center.lng)),
+        )
+        .slice(0, markerLimit);
+
+      layer.clearLayers();
+
+      for (const place of visiblePlaces) {
+        const marker = L.marker([place.lat, place.lng], {
+          icon: createSmallPlacePinIcon(place),
+          keyboard: true,
+          title: place.name,
+          bubblingMouseEvents: false,
+        });
+
+        marker.on("click", (event) => {
+          L.DomEvent.stopPropagation(event);
+          onSelect(toRecommendedPlace(place));
+        });
+        marker.addTo(layer);
+      }
+    }
+
+    const renderTimer = window.setTimeout(renderVisibleMarkers, 0);
+    map.on("moveend zoomend", renderVisibleMarkers);
+
     return () => {
+      window.clearTimeout(renderTimer);
+      map.off("moveend zoomend", renderVisibleMarkers);
       layer.remove();
     };
   }, [map, onSelect, places]);
@@ -490,6 +534,14 @@ export default function BerlinDecisionMap() {
     });
   }
 
+  function handleCategoryChange(nextCategory: CategoryGroup) {
+    const nextQuery = categoryRecommendationQueries[nextCategory];
+
+    setActiveCategory(nextCategory);
+    setQuery(nextQuery);
+    void decide(nextQuery, origin, originMode);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void decide();
@@ -602,7 +654,7 @@ export default function BerlinDecisionMap() {
                     : undefined
                 }
                 aria-pressed={isActive}
-                onClick={() => setActiveCategory(pill.id)}
+                onClick={() => handleCategoryChange(pill.id)}
               >
                 {pill.label}
               </button>
