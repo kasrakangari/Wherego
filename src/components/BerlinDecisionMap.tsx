@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import {
@@ -15,6 +15,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/lib/theme/useTheme";
 
 type Coordinates = {
   lat: number;
@@ -94,6 +96,29 @@ const categoryPills: { id: CategoryGroup; label: string }[] = [
   { id: "bakery", label: "Bakery" },
   { id: "more", label: "More" },
 ];
+
+const categoryPillColors: Record<CategoryGroup, { background: string; text: string }> = {
+  all: {
+    background: "linear-gradient(135deg, #E11D24 0%, #FF7A00 100%)",
+    text: "#ffffff",
+  },
+  cafe: {
+    background: "#FF7A00",
+    text: "#ffffff",
+  },
+  restaurant: {
+    background: "#E11D24",
+    text: "#ffffff",
+  },
+  bakery: {
+    background: "#F5C542",
+    text: "#111827",
+  },
+  more: {
+    background: "#C9141B",
+    text: "#ffffff",
+  },
+};
 
 const categoryColors: Record<string, { pin: string; glow: string }> = {
   cafe: { pin: "#FF7A00", glow: "rgba(255, 122, 0, 0.38)" },
@@ -203,15 +228,19 @@ function CityPlaceLayer({
       const color = categoryColors[place.category]?.pin ?? "#FF7A00";
       const marker = L.circleMarker([place.lat, place.lng], {
         renderer,
-        radius: place.category === "restaurant" ? 3.8 : 3.3,
+        radius: place.category === "restaurant" ? 5 : 4.5,
         color: "rgba(255,255,255,0.86)",
-        weight: 0.7,
+        weight: 1,
         fillColor: color,
-        fillOpacity: 0.84,
-        opacity: 0.72,
+        fillOpacity: 0.9,
+        opacity: 0.86,
+        bubblingMouseEvents: false,
       });
 
-      marker.on("click", () => onSelect(toRecommendedPlace(place)));
+      marker.on("click", (event) => {
+        L.DomEvent.stopPropagation(event);
+        onSelect(toRecommendedPlace(place));
+      });
       marker.addTo(layer);
     }
 
@@ -238,7 +267,7 @@ function MapControls({
     <div className="pointer-events-auto absolute right-4 top-36 z-[520] flex flex-col gap-3 sm:right-6">
       <button
         type="button"
-        className="grid h-12 w-12 place-items-center rounded-full border border-[#2A2A2A] bg-[#0B0B0B] text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition hover:border-[#E11D24]"
+        className="wg-control"
         aria-label="Zoom in"
         onClick={() => map.zoomIn()}
       >
@@ -246,7 +275,7 @@ function MapControls({
       </button>
       <button
         type="button"
-        className="grid h-12 w-12 place-items-center rounded-full border border-[#2A2A2A] bg-[#0B0B0B] text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition hover:border-[#E11D24]"
+        className="wg-control"
         aria-label="Zoom out"
         onClick={() => map.zoomOut()}
       >
@@ -254,7 +283,7 @@ function MapControls({
       </button>
       <button
         type="button"
-        className="grid h-12 w-12 place-items-center rounded-full border border-[#2A2A2A] bg-[#0B0B0B] text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition hover:border-[#E11D24]"
+        className="wg-control"
         aria-label="Use my location"
         onClick={onUseLiveLocation}
       >
@@ -262,17 +291,14 @@ function MapControls({
       </button>
       <button
         type="button"
-        className={`grid h-12 w-12 place-items-center rounded-full border text-white shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition ${
-          manualPinMode
-            ? "border-[#FF7A00] bg-[linear-gradient(135deg,#E11D24_0%,#FF7A00_100%)] shadow-[0_0_24px_rgba(255,122,0,0.35)]"
-            : "border-[#2A2A2A] bg-[#0B0B0B] hover:border-[#E11D24]"
-        }`}
+        className={manualPinMode ? "wg-control wg-control-active" : "wg-control"}
         aria-label="Toggle manual pin mode"
         aria-pressed={manualPinMode}
         onClick={onToggleManualPinMode}
       >
         <MapPin className="h-5 w-5" aria-hidden="true" />
       </button>
+      <ThemeToggle />
     </div>
   );
 }
@@ -301,6 +327,7 @@ function OriginPicker({
 }
 
 export default function BerlinDecisionMap() {
+  const { theme } = useTheme();
   const [query, setQuery] = useState(initialQuery);
   const [decision, setDecision] = useState<PlaceDecision>(initialDecision);
   const [origin, setOrigin] = useState<Coordinates>(berlinCenter);
@@ -311,11 +338,14 @@ export default function BerlinDecisionMap() {
   const [manualPinMode, setManualPinMode] = useState(true);
   const [isDeciding, setIsDeciding] = useState(false);
   const [locationMessage, setLocationMessage] = useState(
-    "Manual pin mode is on, click the map to plan anywhere",
+    "Manual mode: tap empty map space to choose exact origin",
   );
 
-  const topPlace = useMemo(() => decision.places[0] ?? null, [decision.places]);
   const cityPlaceCount = cityPlaces.length;
+  const tileUrl =
+    theme === "dark"
+      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
   async function decide(
     nextQuery = query,
@@ -337,7 +367,7 @@ export default function BerlinDecisionMap() {
     const withMode = { ...nextDecision, originMode: nextOriginMode };
 
     setDecision(withMode);
-    setSelectedPlace(withMode.places[0] ?? null);
+    setSelectedPlace(null);
     setIsDeciding(false);
   }
 
@@ -387,7 +417,7 @@ export default function BerlinDecisionMap() {
     setLocationMessage(
       nextOriginMode === "live"
         ? "Using your live location as the search origin"
-        : "Manual pin is now the search origin",
+        : "Exact origin selected. Tap any place marker to view details",
     );
     void decide(query, nextOrigin, nextOriginMode);
   }
@@ -430,7 +460,7 @@ export default function BerlinDecisionMap() {
       const next = !current;
       setLocationMessage(
         next
-          ? "Manual pin mode is on, click the map to plan anywhere"
+          ? "Manual mode: tap empty map space to choose exact origin"
           : "Manual pin mode is off",
       );
       return next;
@@ -443,7 +473,7 @@ export default function BerlinDecisionMap() {
   }
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-[#050505] text-white">
+    <main className="relative h-dvh w-full overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       <MapContainer
         center={[initialDecision.origin.lat, initialDecision.origin.lng]}
         zoom={13}
@@ -452,12 +482,16 @@ export default function BerlinDecisionMap() {
         className="h-full w-full"
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          key={theme}
+          url={tileUrl}
           subdomains="abcd"
         />
         <RecenterMap decision={decision} />
         <OriginPicker enabled={manualPinMode} onPick={selectOrigin} />
-        <CityPlaceLayer places={cityPlaces} onSelect={setSelectedPlace} />
+        <CityPlaceLayer
+          places={cityPlaces}
+          onSelect={setSelectedPlace}
+        />
         <MapControls
           manualPinMode={manualPinMode}
           onToggleManualPinMode={toggleManualPinMode}
@@ -473,19 +507,22 @@ export default function BerlinDecisionMap() {
             position={[place.lat, place.lng]}
             icon={createPinIcon(place, index)}
             eventHandlers={{
-              click: () => setSelectedPlace(place),
+              click: (event) => {
+                L.DomEvent.stopPropagation(event);
+                setSelectedPlace(place);
+              },
             }}
           />
         ))}
       </MapContainer>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-black/78 via-black/18 to-transparent px-4 pb-12 pt-5 sm:px-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-[color-mix(in_srgb,var(--color-bg)_82%,transparent)] via-[color-mix(in_srgb,var(--color-bg)_22%,transparent)] to-transparent px-4 pb-12 pt-5 sm:px-6">
         <div className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center gap-3 pr-14 sm:pr-0">
           <form
             onSubmit={handleSubmit}
-            className="flex min-h-14 flex-1 items-center gap-3 rounded-full border border-[#E11D24] bg-[#050505]/92 px-4 shadow-[0_0_24px_rgba(225,29,36,0.20),0_16px_36px_rgba(0,0,0,0.46)] backdrop-blur-xl"
+            className="wg-search flex min-h-14 flex-1 items-center gap-3 rounded-full px-4 backdrop-blur-xl"
           >
-            <Search className="h-5 w-5 shrink-0 text-[#C9C9C9]" aria-hidden="true" />
+            <Search className="h-5 w-5 shrink-0 text-[var(--color-text-secondary)]" aria-hidden="true" />
             <label htmlFor="wherego-search" className="sr-only">
               Search in WHEREgo
             </label>
@@ -495,7 +532,7 @@ export default function BerlinDecisionMap() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search in WHEREgo..."
               dir="auto"
-              className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#8A8A8A]"
+              className="min-w-0 flex-1 bg-transparent text-base text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
             />
             <button
               type="submit"
@@ -508,7 +545,7 @@ export default function BerlinDecisionMap() {
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-[#2A2A2A] bg-[#0B0B0B]/92 backdrop-blur-xl transition hover:border-[#E11D24]"
+              className="wg-control backdrop-blur-xl"
               aria-label="Use live location"
               onClick={useLiveLocation}
             >
@@ -516,7 +553,7 @@ export default function BerlinDecisionMap() {
             </button>
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-[#2A2A2A] bg-[#0B0B0B]/92 backdrop-blur-xl transition hover:border-[#E11D24]"
+              className="wg-control backdrop-blur-xl"
               aria-label="Reset to Berlin"
               onClick={resetToBerlin}
             >
@@ -532,11 +569,15 @@ export default function BerlinDecisionMap() {
               <button
                 key={pill.id}
                 type="button"
-                className={`h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition ${
+                className={isActive ? "wg-pill wg-pill-active" : "wg-pill"}
+                style={
                   isActive
-                    ? "bg-[linear-gradient(135deg,#E11D24_0%,#FF7A00_100%)] text-white shadow-[0_0_20px_rgba(255,122,0,0.35)]"
-                    : "border border-[#2A2A2A] bg-[#0B0B0B]/92 text-white hover:border-[#E11D24]"
-                }`}
+                    ? {
+                        background: categoryPillColors[pill.id].background,
+                        color: categoryPillColors[pill.id].text,
+                      }
+                    : undefined
+                }
                 aria-pressed={isActive}
                 onClick={() => setActiveCategory(pill.id)}
               >
@@ -545,8 +586,8 @@ export default function BerlinDecisionMap() {
             );
           })}
         </div>
-        <div className="pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border border-[#2A2A2A] bg-[#0B0B0B]/84 px-4 py-2 text-xs text-[#C9C9C9] backdrop-blur-xl">
-          <MapPin className="h-4 w-4 shrink-0 text-[#FF7A00]" aria-hidden="true" />
+        <div className="wg-status pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border px-4 py-2 text-xs backdrop-blur-xl">
+          <MapPin className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-hidden="true" />
           <span className="min-w-0 truncate">
             {locationMessage} · {decision.radiusKm} km radius · {cityPlaceCount.toLocaleString()} coffee and restaurant pins
           </span>
@@ -554,19 +595,19 @@ export default function BerlinDecisionMap() {
       </div>
 
       <nav
-        className="pointer-events-auto absolute bottom-5 left-1/2 z-[540] flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#E11D24] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+        className="wg-bottom-nav pointer-events-auto absolute bottom-5 left-1/2 z-[540] flex -translate-x-1/2 items-center gap-2 rounded-full p-2"
         aria-label="Main navigation"
       >
         <button
           type="button"
-          className="grid h-11 w-11 place-items-center rounded-full text-white/82 transition hover:bg-black/20"
+          className="wg-bottom-nav-item grid h-11 w-11 place-items-center rounded-full transition hover:bg-black/10"
           aria-label="Profile"
         >
           <span className="text-sm font-bold">P</span>
         </button>
         <button
           type="button"
-          className="grid h-11 min-w-14 place-items-center rounded-full bg-[#050505] px-4 text-white"
+          className="wg-bottom-nav-active grid h-11 min-w-14 place-items-center rounded-full px-4"
           aria-label="Map search active"
           aria-current="page"
         >
@@ -574,7 +615,7 @@ export default function BerlinDecisionMap() {
         </button>
         <button
           type="button"
-          className="grid h-11 w-11 place-items-center rounded-full text-white/82 transition hover:bg-black/20"
+          className="wg-bottom-nav-item grid h-11 w-11 place-items-center rounded-full transition hover:bg-black/10"
           aria-label="Home"
         >
           <Home className="h-5 w-5" aria-hidden="true" />
@@ -583,13 +624,13 @@ export default function BerlinDecisionMap() {
 
       <section className="pointer-events-none absolute inset-x-0 bottom-24 z-[500] px-3 sm:px-6">
         <div className="mx-auto max-w-2xl">
-          <div className="pointer-events-auto overflow-hidden rounded-t-[28px] border border-[#2A2A2A] bg-[#0B0B0B]/96 shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:rounded-[28px]">
-            <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-white/22" />
+          <div className="wg-bottom-sheet pointer-events-auto overflow-hidden rounded-t-[28px] border backdrop-blur-2xl sm:rounded-[28px]">
+            <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-[var(--color-text-muted)]/35" />
             {selectedPlace ? (
               <div className="p-5 sm:p-6">
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-[#8A8A8A]">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
                       <span>
                         #
                         {decision.places.findIndex(
@@ -599,16 +640,16 @@ export default function BerlinDecisionMap() {
                       <span>{selectedPlace.category.replaceAll("_", " ")}</span>
                       <span>{selectedPlace.distance}</span>
                     </div>
-                    <h1 className="text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                    <h1 className="text-2xl font-semibold leading-tight text-[var(--color-text-primary)] sm:text-3xl">
                       {selectedPlace.name}
                     </h1>
                     {selectedPlace.address ? (
-                      <p className="mt-2 text-sm text-[#C9C9C9]">{selectedPlace.address}</p>
+                      <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{selectedPlace.address}</p>
                     ) : null}
                   </div>
                   <button
                     type="button"
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#181818] text-[#C9C9C9] transition hover:bg-[#2A2A2A] hover:text-white"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--color-surface-soft)] text-[var(--color-text-secondary)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
                     aria-label="Close place details"
                     onClick={() => setSelectedPlace(null)}
                   >
@@ -623,7 +664,7 @@ export default function BerlinDecisionMap() {
                   {selectedPlace.cuisine?.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-[#2A2A2A] bg-[#181818] px-3 py-1 text-sm text-[#C9C9C9]"
+                      className="wg-chip rounded-full border px-3 py-1 text-sm"
                     >
                       {tag}
                     </span>
@@ -631,18 +672,18 @@ export default function BerlinDecisionMap() {
                   {selectedPlace.vibe.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-[#2A2A2A] bg-[#181818] px-3 py-1 text-sm text-[#C9C9C9]"
+                      className="wg-chip rounded-full border px-3 py-1 text-sm"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
 
-                <p className="mb-4 text-sm leading-6 text-[#C9C9C9] sm:text-base">
+                <p className="mb-4 text-sm leading-6 text-[var(--color-text-secondary)] sm:text-base">
                   {selectedPlace.reason}
                 </p>
 
-                <div className="mb-5 grid gap-1 text-sm text-[#8A8A8A]">
+                <div className="mb-5 grid gap-1 text-sm text-[var(--color-text-muted)]">
                   {selectedPlace.openingHours ? (
                     <span>{selectedPlace.openingHours}</span>
                   ) : null}
@@ -652,7 +693,7 @@ export default function BerlinDecisionMap() {
                       href={selectedPlace.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="truncate text-[#FF9A1F] underline decoration-[#FF7A00]/40 underline-offset-4"
+                      className="truncate text-[var(--color-accent-light)] underline decoration-[var(--color-accent)]/40 underline-offset-4"
                     >
                       {selectedPlace.website}
                     </a>
@@ -670,25 +711,23 @@ export default function BerlinDecisionMap() {
                 </a>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => topPlace && setSelectedPlace(topPlace)}
-                className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-[#181818] sm:p-6"
-              >
+              <div className="flex w-full items-center justify-between gap-4 p-5 text-left sm:p-6">
                 <span>
-                  <span className="block text-sm font-medium text-[#8A8A8A]">
+                  <span className="block text-sm font-medium text-[var(--color-text-muted)]">
                     {isDeciding
                       ? "AI is choosing Berlin pins"
-                      : "Run the importer, then drop a pin or search"}
+                      : "Tap a map pin to open place details"}
                   </span>
-                  <span className="mt-1 block text-lg font-semibold text-white">
-                    {topPlace?.name ?? "WHEREgo Berlin"}
+                  <span className="mt-1 block text-lg font-semibold text-[var(--color-text-primary)]">
+                    {decision.places.length > 0
+                      ? `${decision.places.length} recommendations ready`
+                      : "WHEREgo Berlin"}
                   </span>
                 </span>
                 <Sparkles className="h-5 w-5 shrink-0 text-white/60" aria-hidden="true" />
-              </button>
+              </div>
             )}
-            <div className="border-t border-[#2A2A2A] px-5 py-3 text-[11px] text-[#8A8A8A] sm:px-6">
+            <div className="border-t border-[var(--color-border)] px-5 py-3 text-[11px] text-[var(--color-text-muted)] sm:px-6">
               {decision.attribution}
             </div>
           </div>

@@ -1,22 +1,72 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
-:root {
-  --background: #050505;
-  --foreground: #f7f8f5;
+:root,
+html.dark {
+  --color-bg: #050505;
+  --color-surface: #0b0b0b;
+  --color-surface-elevated: #111111;
+  --color-surface-soft: #181818;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #c9c9c9;
+  --color-text-muted: #8a8a8a;
+  --color-border: #2a2a2a;
+  --color-border-strong: #e11d24;
+  --color-primary: #e11d24;
+  --color-primary-hover: #c9141b;
+  --color-primary-active: #ff2a2f;
+  --color-accent: #ff7a00;
+  --color-accent-light: #ff9a1f;
+  --color-food: #ff8a00;
+  --color-map-green: #0f5a2a;
+  --color-map-yellow-dot: #f5c542;
+  --color-map-red-dot: #e53935;
+  --color-shadow: rgba(0, 0, 0, 0.45);
+  --color-map-bg: #050505;
+  --map-filter: saturate(0.82) contrast(1.05) brightness(1.1);
+  --map-opacity: 0.98;
+  --origin-bg: #ffffff;
+  --origin-dot: #111827;
+}
+
+html.light {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-soft: #f1f5f9;
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-border-strong: #e11d24;
+  --color-primary: #e11d24;
+  --color-primary-hover: #c9141b;
+  --color-primary-active: #b91c1c;
+  --color-accent: #ff7a00;
+  --color-accent-light: #ffb15c;
+  --color-food: #ff8a00;
+  --color-map-green: #7bcf8e;
+  --color-map-yellow-dot: #facc15;
+  --color-map-red-dot: #ef4444;
+  --color-shadow: rgba(15, 23, 42, 0.12);
+  --color-map-bg: #f8fafc;
+  --map-filter: saturate(0.94) contrast(0.98) brightness(1.02);
+  --map-opacity: 1;
+  --origin-bg: #111827;
+  --origin-dot: #ffffff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 html,
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   font-family: Arial, Helvetica, sans-serif;
   height: 100%;
 }
@@ -28,13 +78,114 @@ a {
 }
 
 .leaflet-container {
-  background: #050505;
+  background: var(--color-map-bg);
   font-family: inherit;
 }
 
 .leaflet-tile-pane {
-  filter: saturate(0.82) contrast(1.05) brightness(1.1);
-  opacity: 0.98;
+  filter: var(--map-filter);
+  opacity: var(--map-opacity);
+}
+
+.wg-search {
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  box-shadow:
+    0 0 24px rgba(225, 29, 36, 0.2),
+    0 16px 36px var(--color-shadow);
+}
+
+.wg-control {
+  display: grid;
+  height: 48px;
+  width: 48px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: 0 8px 20px var(--color-shadow);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.wg-control:hover {
+  border-color: var(--color-border-strong);
+}
+
+.wg-control-active {
+  border-color: var(--color-accent);
+  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  color: #ffffff;
+  box-shadow: 0 0 24px rgba(255, 122, 0, 0.35);
+}
+
+.wg-pill {
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  color: var(--color-text-primary);
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: border-color 160ms ease;
+}
+
+.wg-pill:hover {
+  border-color: var(--color-border-strong);
+}
+
+.wg-pill-active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(255, 122, 0, 0.28);
+}
+
+.wg-status,
+.wg-bottom-sheet,
+.wg-chip {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  color: var(--color-text-secondary);
+}
+
+.wg-bottom-sheet {
+  box-shadow: 0 -12px 40px var(--color-shadow);
+}
+
+.wg-bottom-nav {
+  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  box-shadow: 0 10px 30px var(--color-shadow);
+}
+
+html.light .wg-bottom-nav {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.wg-bottom-nav-item {
+  color: color-mix(in srgb, var(--color-text-primary) 82%, transparent);
+}
+
+.wg-bottom-nav-active {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+html.light .wg-bottom-nav-active {
+  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  color: #ffffff;
+}
+
+.wg-toast {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  box-shadow: 0 10px 30px var(--color-shadow);
 }
 
 .wherego-pin {
@@ -71,26 +222,26 @@ a {
 .wherego-origin-pin {
   display: grid;
   height: 30px;
-  place-items: center;
   width: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.95);
+  place-items: center;
+  border: 2px solid var(--color-border-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--origin-bg);
   box-shadow:
-    0 0 0 9px rgba(255, 255, 255, 0.18),
-    0 12px 28px rgba(0, 0, 0, 0.4);
+    0 0 0 9px rgba(225, 29, 36, 0.18),
+    0 12px 28px var(--color-shadow);
 }
 
 .wherego-origin-pin span {
   height: 8px;
   width: 8px;
   border-radius: 999px;
-  background: #0b0b0b;
+  background: var(--origin-dot);
 }
 
 .wherego-origin-live {
-  background: rgba(34, 211, 238, 0.95);
+  background: var(--color-accent-light);
   box-shadow:
-    0 0 0 9px rgba(34, 211, 238, 0.18),
-    0 12px 28px rgba(0, 0, 0, 0.4);
+    0 0 0 9px rgba(255, 122, 0, 0.18),
+    0 12px 28px var(--color-shadow);
 }
