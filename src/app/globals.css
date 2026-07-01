@@ -193,6 +193,35 @@ html.light .wg-bottom-nav-active {
   background: transparent;
 }
 
+.wherego-small-pin {
+  border: 0;
+  background: transparent;
+}
+
+.wherego-small-pin-button {
+  display: block;
+  height: 18px;
+  width: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px 999px 999px 0;
+  background: var(--pin-color);
+  box-shadow:
+    0 0 0 3px var(--pin-glow),
+    0 5px 12px var(--color-shadow);
+  cursor: pointer;
+  transform: rotate(-45deg);
+  transition:
+    filter 140ms ease,
+    transform 140ms ease;
+}
+
+.wherego-small-pin-button:hover,
+.wherego-small-pin-button:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+  transform: rotate(-45deg) scale(1.18);
+}
+
 .wherego-pin-button {
   display: grid;
   place-items: center;

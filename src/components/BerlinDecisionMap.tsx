@@ -87,6 +87,14 @@ const categoryGroups = {
   more: ["bar", "pub", "fast_food", "food_court", "biergarten", "ice_cream"],
 } as const;
 
+const categoryLimits: Record<CategoryGroup, number> = {
+  all: 1200,
+  cafe: 5000,
+  restaurant: 5000,
+  bakery: 5000,
+  more: 5000,
+};
+
 type CategoryGroup = keyof typeof categoryGroups;
 
 const categoryPills: { id: CategoryGroup; label: string }[] = [
@@ -121,18 +129,39 @@ const categoryPillColors: Record<CategoryGroup, { background: string; text: stri
 };
 
 const categoryColors: Record<string, { pin: string; glow: string }> = {
-  cafe: { pin: "#FF7A00", glow: "rgba(255, 122, 0, 0.38)" },
-  coffee_shop: { pin: "#FF9A1F", glow: "rgba(255, 154, 31, 0.36)" },
-  restaurant: { pin: "#E11D24", glow: "rgba(225, 29, 36, 0.38)" },
-  fast_food: { pin: "#FF8A00", glow: "rgba(255, 138, 0, 0.34)" },
-  food_court: { pin: "#FF8A00", glow: "rgba(255, 138, 0, 0.34)" },
-  bar: { pin: "#C9141B", glow: "rgba(201, 20, 27, 0.34)" },
-  pub: { pin: "#C9141B", glow: "rgba(201, 20, 27, 0.34)" },
-  biergarten: { pin: "#0F5A2A", glow: "rgba(15, 90, 42, 0.34)" },
-  bakery: { pin: "#F5C542", glow: "rgba(245, 197, 66, 0.34)" },
-  ice_cream: { pin: "#FF9A1F", glow: "rgba(255, 154, 31, 0.34)" },
-  dessert: { pin: "#FF9A1F", glow: "rgba(255, 154, 31, 0.34)" },
+  cafe: { pin: "#D9853B", glow: "rgba(217, 133, 59, 0.28)" },
+  coffee_shop: { pin: "#C97836", glow: "rgba(201, 120, 54, 0.26)" },
+  restaurant: { pin: "#D33A32", glow: "rgba(211, 58, 50, 0.28)" },
+  fast_food: { pin: "#D9853B", glow: "rgba(217, 133, 59, 0.24)" },
+  food_court: { pin: "#D9853B", glow: "rgba(217, 133, 59, 0.24)" },
+  bar: { pin: "#A9282F", glow: "rgba(169, 40, 47, 0.24)" },
+  pub: { pin: "#A9282F", glow: "rgba(169, 40, 47, 0.24)" },
+  biergarten: { pin: "#2F7D46", glow: "rgba(47, 125, 70, 0.24)" },
+  bakery: { pin: "#D6A23A", glow: "rgba(214, 162, 58, 0.24)" },
+  ice_cream: { pin: "#C97836", glow: "rgba(201, 120, 54, 0.24)" },
+  dessert: { pin: "#C97836", glow: "rgba(201, 120, 54, 0.24)" },
 };
+
+function getCategoryStyle(category: string) {
+  return categoryColors[category] ?? { pin: "#FF7A00", glow: "rgba(255, 122, 0, 0.34)" };
+}
+
+function createSmallPlacePinIcon(place: MapPlace) {
+  const style = getCategoryStyle(place.category);
+
+  return L.divIcon({
+    className: "wherego-small-pin",
+    html: `
+      <button
+        aria-label="${place.name}"
+        class="wherego-small-pin-button"
+        style="--pin-color:${style.pin};--pin-glow:${style.glow};"
+      ></button>
+    `,
+    iconSize: [18, 24],
+    iconAnchor: [9, 23],
+  });
+}
 
 function createPinIcon(place: RecommendedPlace, rank: number) {
   const size = rank === 0 ? 46 : 34;
@@ -221,19 +250,13 @@ function CityPlaceLayer({
   const map = useMap();
 
   useEffect(() => {
-    const renderer = L.canvas({ padding: 0.5 });
     const layer = L.layerGroup().addTo(map);
 
     for (const place of places) {
-      const color = categoryColors[place.category]?.pin ?? "#FF7A00";
-      const marker = L.circleMarker([place.lat, place.lng], {
-        renderer,
-        radius: place.category === "restaurant" ? 5 : 4.5,
-        color: "rgba(255,255,255,0.86)",
-        weight: 1,
-        fillColor: color,
-        fillOpacity: 0.9,
-        opacity: 0.86,
+      const marker = L.marker([place.lat, place.lng], {
+        icon: createSmallPlacePinIcon(place),
+        keyboard: true,
+        title: place.name,
         bubblingMouseEvents: false,
       });
 
@@ -386,7 +409,7 @@ export default function BerlinDecisionMap() {
     async function loadCityPlaces() {
       const responses = await Promise.all(
         categoryGroups[activeCategory].map((category) =>
-          fetch(`/api/places?category=${category}&limit=5000`, {
+          fetch(`/api/places?category=${category}&limit=${categoryLimits[activeCategory]}`, {
             signal: controller.signal,
           }).then((response) => response.json() as Promise<{ places: MapPlace[] }>),
         ),
@@ -399,7 +422,7 @@ export default function BerlinDecisionMap() {
         }
       }
 
-      setCityPlaces([...uniquePlaces.values()]);
+      setCityPlaces([...uniquePlaces.values()].slice(0, categoryLimits[activeCategory]));
     }
 
     void loadCityPlaces().catch((error) => {
