@@ -353,7 +353,7 @@ export default function BerlinDecisionMap() {
   }
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-[#182320] text-white">
+    <main className="relative h-dvh w-full overflow-hidden bg-[#263936] text-white">
       <MapContainer
         center={[initialDecision.origin.lat, initialDecision.origin.lng]}
         zoom={13}
@@ -362,7 +362,7 @@ export default function BerlinDecisionMap() {
         className="h-full w-full"
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           subdomains="abcd"
         />
         <RecenterMap decision={decision} />
@@ -384,11 +384,11 @@ export default function BerlinDecisionMap() {
         ))}
       </MapContainer>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-[#17211f]/78 via-[#17211f]/22 to-transparent px-4 pb-12 pt-4 sm:px-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-[#2b403d]/72 via-[#2b403d]/18 to-transparent px-4 pb-12 pt-4 sm:px-6">
         <div className="pointer-events-auto mx-auto flex w-full max-w-3xl items-center gap-3">
           <form
             onSubmit={handleSubmit}
-            className="flex min-h-14 flex-1 items-center gap-3 rounded-[28px] border border-white/14 bg-[#17211f]/82 px-4 shadow-2xl shadow-black/24 backdrop-blur-xl"
+            className="flex min-h-14 flex-1 items-center gap-3 rounded-[28px] border border-white/18 bg-[#2b403d]/82 px-4 shadow-2xl shadow-black/20 backdrop-blur-xl"
           >
             <Search className="h-5 w-5 shrink-0 text-white/64" aria-hidden="true" />
             <input
@@ -408,7 +408,7 @@ export default function BerlinDecisionMap() {
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/14 bg-[#17211f]/78 backdrop-blur-xl transition hover:bg-[#22302d]/90"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/18 bg-[#2b403d]/78 backdrop-blur-xl transition hover:bg-[#3a5550]/90"
               aria-label="Use live location"
               onClick={useLiveLocation}
             >
@@ -416,7 +416,7 @@ export default function BerlinDecisionMap() {
             </button>
             <button
               type="button"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/14 bg-[#17211f]/78 backdrop-blur-xl transition hover:bg-[#22302d]/90"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/18 bg-[#2b403d]/78 backdrop-blur-xl transition hover:bg-[#3a5550]/90"
               aria-label="Reset to Berlin"
               onClick={resetToBerlin}
             >
@@ -424,7 +424,7 @@ export default function BerlinDecisionMap() {
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border border-white/12 bg-[#17211f]/72 px-4 py-2 text-xs text-white/72 backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto mt-3 flex w-full max-w-3xl items-center gap-2 rounded-full border border-white/16 bg-[#2b403d]/74 px-4 py-2 text-xs text-white/76 backdrop-blur-xl">
           <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden="true" />
           <span className="min-w-0 truncate">
             {locationMessage} · {decision.radiusKm} km radius · {cityPlaceCount.toLocaleString()} coffee and restaurant pins
@@ -434,7 +434,7 @@ export default function BerlinDecisionMap() {
 
       <section className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] px-3 pb-3 sm:px-6 sm:pb-6">
         <div className="mx-auto max-w-2xl">
-          <div className="pointer-events-auto overflow-hidden rounded-t-[28px] border border-white/14 bg-[#17211f]/94 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:rounded-[28px]">
+          <div className="pointer-events-auto overflow-hidden rounded-t-[28px] border border-white/16 bg-[#2b403d]/94 shadow-2xl shadow-black/32 backdrop-blur-2xl sm:rounded-[28px]">
             <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-white/22" />
             {selectedPlace ? (
               <div className="p-5 sm:p-6">
