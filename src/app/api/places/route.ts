@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { berlinCenter, decideBerlinPlaces } from "@/lib/places";
-import type { Coordinates, OriginMode } from "@/lib/places";
+import { filterPlaces, isPlaceCategory } from "@/lib/places/repository";
 
-export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as {
-    query?: string;
-    origin?: Coordinates;
-    originMode?: OriginMode;
-    radiusKm?: number;
-  };
-  const query = body.query?.trim() || "best places in Berlin right now";
-  const origin = body.origin ?? berlinCenter;
-  const originMode = body.originMode ?? "city";
-  const radiusKm = body.radiusKm ?? 5;
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const categoryParam = searchParams.get("category");
+  const limit = Number(searchParams.get("limit") ?? 500);
+  const query = searchParams.get("query") ?? undefined;
+  const category = isPlaceCategory(categoryParam) ? categoryParam : undefined;
+  const places = await filterPlaces({ category, limit, query });
 
-  return NextResponse.json(decideBerlinPlaces(query, origin, originMode, radiusKm));
+  return NextResponse.json({
+    count: places.length,
+    places,
+    attribution: "Place data © OpenStreetMap contributors",
+  });
 }

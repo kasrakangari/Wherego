@@ -3,23 +3,84 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import { ArrowUpRight, LocateFixed, MapPin, Navigation, Search, Sparkles, X } from "lucide-react";
-import { berlinCenter, decideBerlinPlaces } from "@/lib/places";
-import type { Coordinates, OriginMode, Place, PlaceDecision, PlaceVibe } from "@/lib/places";
+import {
+  ArrowUpRight,
+  LocateFixed,
+  MapPin,
+  Navigation,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 
-const vibeStyles: Record<PlaceVibe, { pin: string; glow: string }> = {
-  study: { pin: "#38bdf8", glow: "rgba(56, 189, 248, 0.34)" },
-  food: { pin: "#ef4444", glow: "rgba(239, 68, 68, 0.34)" },
-  date: { pin: "#ec4899", glow: "rgba(236, 72, 153, 0.34)" },
-  casual: { pin: "#22c55e", glow: "rgba(34, 197, 94, 0.34)" },
+type Coordinates = {
+  lat: number;
+  lng: number;
 };
 
-const initialQuery = "date night in Berlin";
-const initialDecision = decideBerlinPlaces(initialQuery, berlinCenter, "city", 5);
+type OriginMode = "city" | "live" | "manual";
 
-function createPinIcon(place: Place, rank: number) {
+type RecommendedPlace = {
+  id: string;
+  name: string;
+  category: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  phone?: string;
+  website?: string;
+  cuisine?: string[];
+  openingHours?: string;
+  distanceKm: number;
+  distance: string;
+  score: number;
+  vibe: string[];
+  price: "€" | "€€" | "€€€";
+  reason: string;
+};
+
+type PlaceDecision = {
+  origin: Coordinates;
+  originMode: OriginMode;
+  radiusKm: number;
+  places: RecommendedPlace[];
+  attribution: string;
+};
+
+const berlinCenter: Coordinates = {
+  lat: 52.52,
+  lng: 13.405,
+};
+
+const initialQuery = "quiet cafe for studying";
+const initialDecision: PlaceDecision = {
+  origin: berlinCenter,
+  originMode: "city",
+  radiusKm: 2,
+  places: [],
+  attribution: "Place data © OpenStreetMap contributors",
+};
+
+const categoryColors: Record<string, { pin: string; glow: string }> = {
+  cafe: { pin: "#38bdf8", glow: "rgba(56, 189, 248, 0.34)" },
+  coffee_shop: { pin: "#38bdf8", glow: "rgba(56, 189, 248, 0.34)" },
+  restaurant: { pin: "#ef4444", glow: "rgba(239, 68, 68, 0.34)" },
+  fast_food: { pin: "#ef4444", glow: "rgba(239, 68, 68, 0.34)" },
+  food_court: { pin: "#ef4444", glow: "rgba(239, 68, 68, 0.34)" },
+  bar: { pin: "#ec4899", glow: "rgba(236, 72, 153, 0.34)" },
+  pub: { pin: "#ec4899", glow: "rgba(236, 72, 153, 0.34)" },
+  biergarten: { pin: "#22c55e", glow: "rgba(34, 197, 94, 0.34)" },
+  bakery: { pin: "#f97316", glow: "rgba(249, 115, 22, 0.34)" },
+  ice_cream: { pin: "#a78bfa", glow: "rgba(167, 139, 250, 0.34)" },
+  dessert: { pin: "#a78bfa", glow: "rgba(167, 139, 250, 0.34)" },
+};
+
+function createPinIcon(place: RecommendedPlace, rank: number) {
   const size = rank === 0 ? 58 : 44;
-  const style = vibeStyles[place.primaryVibe];
+  const style = categoryColors[place.category] ?? {
+    pin: "#22c55e",
+    glow: "rgba(34, 197, 94, 0.34)",
+  };
 
   return L.divIcon({
     className: "wherego-pin",
@@ -52,6 +113,12 @@ function createOriginIcon(mode: OriginMode) {
   });
 }
 
+function createNavigateUrl(place: RecommendedPlace) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    `${place.name} ${place.lat},${place.lng}`,
+  )}`;
+}
+
 function RecenterMap({ decision }: { decision: PlaceDecision }) {
   const map = useMap();
 
@@ -61,13 +128,11 @@ function RecenterMap({ decision }: { decision: PlaceDecision }) {
       return;
     }
 
-    const bounds = L.latLngBounds(
-      [
-        [decision.origin.lat, decision.origin.lng] as [number, number],
-        ...decision.places.map((place) => [place.lat, place.lng] as [number, number]),
-      ],
-    );
-    map.fitBounds(bounds, { padding: [82, 82], maxZoom: 14 });
+    const bounds = L.latLngBounds([
+      [decision.origin.lat, decision.origin.lng] as [number, number],
+      ...decision.places.map((place) => [place.lat, place.lng] as [number, number]),
+    ]);
+    map.fitBounds(bounds, { padding: [82, 82], maxZoom: 15 });
   }, [decision, map]);
 
   return null;
@@ -93,13 +158,13 @@ function OriginPicker({
 export default function BerlinDecisionMap() {
   const [query, setQuery] = useState(initialQuery);
   const [decision, setDecision] = useState<PlaceDecision>(initialDecision);
-  const [origin, setOrigin] = useState<Coordinates>(initialDecision.origin);
+  const [origin, setOrigin] = useState<Coordinates>(berlinCenter);
   const [originMode, setOriginMode] = useState<OriginMode>("city");
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(
-    initialDecision.places[0] ?? null,
-  );
+  const [selectedPlace, setSelectedPlace] = useState<RecommendedPlace | null>(null);
   const [isDeciding, setIsDeciding] = useState(false);
-  const [locationMessage, setLocationMessage] = useState("Click the map to drop a planning pin");
+  const [locationMessage, setLocationMessage] = useState(
+    "Click the map to drop a planning pin",
+  );
 
   const topPlace = useMemo(() => decision.places[0] ?? null, [decision.places]);
 
@@ -110,22 +175,31 @@ export default function BerlinDecisionMap() {
   ) {
     setIsDeciding(true);
 
-    const response = await fetch("/api/places", {
+    const response = await fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query: nextQuery,
         origin: nextOrigin,
-        originMode: nextOriginMode,
-        radiusKm: 5,
+        radiusKm: 2,
       }),
     });
-    const nextDecision = (await response.json()) as PlaceDecision;
+    const nextDecision = (await response.json()) as Omit<PlaceDecision, "originMode">;
+    const withMode = { ...nextDecision, originMode: nextOriginMode };
 
-    setDecision(nextDecision);
-    setSelectedPlace(nextDecision.places[0] ?? null);
+    setDecision(withMode);
+    setSelectedPlace(withMode.places[0] ?? null);
     setIsDeciding(false);
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void decide(initialQuery, berlinCenter, "city");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function selectOrigin(nextOrigin: Coordinates, nextOriginMode: OriginMode) {
     setOrigin(nextOrigin);
@@ -163,8 +237,12 @@ export default function BerlinDecisionMap() {
   }
 
   function resetToBerlin() {
-    setQuery("best places in Berlin");
-    selectOrigin(berlinCenter, "city");
+    const nextQuery = "best places in Berlin";
+    setQuery(nextQuery);
+    setOrigin(berlinCenter);
+    setOriginMode("city");
+    setLocationMessage("Berlin center is now the search origin");
+    void decide(nextQuery, berlinCenter, "city");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -266,12 +344,15 @@ export default function BerlinDecisionMap() {
                           (place) => place.id === selectedPlace.id,
                         ) + 1}
                       </span>
-                      <span>{selectedPlace.category}</span>
+                      <span>{selectedPlace.category.replaceAll("_", " ")}</span>
                       <span>{selectedPlace.distance}</span>
                     </div>
                     <h1 className="text-2xl font-semibold leading-tight text-white sm:text-3xl">
                       {selectedPlace.name}
                     </h1>
+                    {selectedPlace.address ? (
+                      <p className="mt-2 text-sm text-white/58">{selectedPlace.address}</p>
+                    ) : null}
                   </div>
                   <button
                     type="button"
@@ -287,6 +368,14 @@ export default function BerlinDecisionMap() {
                   <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-black">
                     {selectedPlace.price}
                   </span>
+                  {selectedPlace.cuisine?.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/12 bg-white/7 px-3 py-1 text-sm text-white/78"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                   {selectedPlace.vibe.map((tag) => (
                     <span
                       key={tag}
@@ -297,12 +386,29 @@ export default function BerlinDecisionMap() {
                   ))}
                 </div>
 
-                <p className="mb-5 text-sm leading-6 text-white/72 sm:text-base">
+                <p className="mb-4 text-sm leading-6 text-white/72 sm:text-base">
                   {selectedPlace.reason}
                 </p>
 
+                <div className="mb-5 grid gap-1 text-sm text-white/58">
+                  {selectedPlace.openingHours ? (
+                    <span>{selectedPlace.openingHours}</span>
+                  ) : null}
+                  {selectedPlace.phone ? <span>{selectedPlace.phone}</span> : null}
+                  {selectedPlace.website ? (
+                    <a
+                      href={selectedPlace.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate text-white/78 underline decoration-white/20 underline-offset-4"
+                    >
+                      {selectedPlace.website}
+                    </a>
+                  ) : null}
+                </div>
+
                 <a
-                  href={selectedPlace.mapsUrl}
+                  href={createNavigateUrl(selectedPlace)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition hover:scale-[1.01] sm:w-auto sm:px-6"
@@ -319,7 +425,9 @@ export default function BerlinDecisionMap() {
               >
                 <span>
                   <span className="block text-sm font-medium text-white/54">
-                    {isDeciding ? "AI is choosing Berlin pins" : "Tap a pin for the best match"}
+                    {isDeciding
+                      ? "AI is choosing Berlin pins"
+                      : "Run the importer, then drop a pin or search"}
                   </span>
                   <span className="mt-1 block text-lg font-semibold text-white">
                     {topPlace?.name ?? "WHEREgo Berlin"}
@@ -328,6 +436,9 @@ export default function BerlinDecisionMap() {
                 <Sparkles className="h-5 w-5 shrink-0 text-white/60" aria-hidden="true" />
               </button>
             )}
+            <div className="border-t border-white/8 px-5 py-3 text-[11px] text-white/38 sm:px-6">
+              {decision.attribution}
+            </div>
           </div>
         </div>
       </section>
