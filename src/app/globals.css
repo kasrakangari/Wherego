@@ -61,3 +61,35 @@ a {
   filter: brightness(1.08);
   transform: scale(1.08);
 }
+
+.wherego-origin {
+  border: 0;
+  background: transparent;
+}
+
+.wherego-origin-pin {
+  display: grid;
+  height: 30px;
+  place-items: center;
+  width: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.92);
+  box-shadow:
+    0 0 0 9px rgba(250, 204, 21, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+.wherego-origin-pin span {
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+  background: #111111;
+}
+
+.wherego-origin-live {
+  background: rgba(34, 211, 238, 0.95);
+  box-shadow:
+    0 0 0 9px rgba(34, 211, 238, 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.4);
+}
