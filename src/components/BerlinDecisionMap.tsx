@@ -57,6 +57,13 @@ type MapPlace = {
   openingHours?: string;
 };
 
+type MapFeature = {
+  id: string;
+  kind: "green" | "water";
+  name?: string;
+  rings: [number, number][][];
+};
+
 type PlaceDecision = {
   origin: Coordinates;
   originMode: OriginMode;
@@ -249,6 +256,73 @@ function RecenterMap({ decision }: { decision: PlaceDecision }) {
   return null;
 }
 
+function BerlinNatureLayer({
+  enabled,
+  features,
+}: {
+  enabled: boolean;
+  features: MapFeature[];
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!enabled || features.length === 0) {
+      return;
+    }
+
+    const paneName = "wherego-nature-pane";
+    const pane = map.getPane(paneName) ?? map.createPane(paneName);
+    pane.style.zIndex = "230";
+    pane.style.pointerEvents = "none";
+
+    const preparedFeatures = features.map((feature) => ({
+      feature,
+      bounds: L.latLngBounds(
+        feature.rings.flatMap((ring) =>
+          ring.map(([lat, lng]) => [lat, lng] as [number, number]),
+        ),
+      ),
+    }));
+    const layer = L.layerGroup().addTo(map);
+
+    function renderVisibleFeatures() {
+      const visibleBounds = map.getBounds().pad(0.18);
+
+      layer.clearLayers();
+
+      for (const { feature, bounds } of preparedFeatures) {
+        if (!visibleBounds.intersects(bounds)) {
+          continue;
+        }
+
+        const isWater = feature.kind === "water";
+        L.polygon(feature.rings, {
+          pane: paneName,
+          interactive: false,
+          bubblingMouseEvents: false,
+          fillColor: isWater ? "#2388d8" : "#2f8b52",
+          fillOpacity: isWater ? 0.5 : 0.42,
+          stroke: true,
+          color: isWater ? "#69c7ff" : "#65d887",
+          opacity: isWater ? 0.72 : 0.58,
+          weight: isWater ? 1.2 : 1,
+        }).addTo(layer);
+      }
+    }
+
+    const renderTimer = window.setTimeout(renderVisibleFeatures, 0);
+    map.on("moveend zoomend", renderVisibleFeatures);
+
+    return () => {
+      window.clearTimeout(renderTimer);
+      map.off("moveend zoomend", renderVisibleFeatures);
+      layer.remove();
+    };
+  }, [enabled, features, map]);
+
+  return null;
+}
+
 function CityPlaceLayer({
   places,
   onSelect,
@@ -419,6 +493,7 @@ export default function BerlinDecisionMap() {
   const [originMode, setOriginMode] = useState<OriginMode>("city");
   const [selectedPlace, setSelectedPlace] = useState<RecommendedPlace | null>(null);
   const [cityPlaces, setCityPlaces] = useState<MapPlace[]>([]);
+  const [mapFeatures, setMapFeatures] = useState<MapFeature[]>([]);
   const [activeCategory, setActiveCategory] = useState<CategoryGroup>("all");
   const [manualPinMode, setManualPinMode] = useState(true);
   const [isDeciding, setIsDeciding] = useState(false);
@@ -464,6 +539,27 @@ export default function BerlinDecisionMap() {
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (theme !== "dark" || mapFeatures.length > 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch("/data/berlin-map-features.json", { signal: controller.signal })
+      .then((response) => response.json() as Promise<MapFeature[]>)
+      .then(setMapFeatures)
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Failed to load Berlin map features", error);
+      });
+
+    return () => controller.abort();
+  }, [mapFeatures.length, theme]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -579,6 +675,7 @@ export default function BerlinDecisionMap() {
           url={tileUrl}
           subdomains="abcd"
         />
+        <BerlinNatureLayer enabled={theme === "dark"} features={mapFeatures} />
         <RecenterMap decision={decision} />
         <OriginPicker enabled={manualPinMode} onPick={selectOrigin} />
         <CityPlaceLayer

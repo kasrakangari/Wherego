@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:berlin": "tsx scripts/importBerlinPlaces.ts"
+    "import:berlin": "tsx scripts/importBerlinPlaces.ts",
+    "import:berlin-map": "tsx scripts/importBerlinMapFeatures.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
