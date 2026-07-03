@@ -3,29 +3,29 @@
 
 :root,
 html.dark {
-  --color-bg: #050505;
-  --color-surface: #0b0b0b;
-  --color-surface-elevated: #111111;
-  --color-surface-soft: #181818;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #c9c9c9;
-  --color-text-muted: #8a8a8a;
-  --color-border: #2a2a2a;
-  --color-border-strong: #e11d24;
-  --color-primary: #e11d24;
-  --color-primary-hover: #c9141b;
-  --color-primary-active: #ff2a2f;
-  --color-accent: #ff7a00;
-  --color-accent-light: #ff9a1f;
-  --color-food: #ff8a00;
-  --color-map-green: #0f5a2a;
+  --color-bg: #0f1720;
+  --color-surface: #16212b;
+  --color-surface-elevated: #1d2a36;
+  --color-surface-soft: #243343;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #d7dee8;
+  --color-text-muted: #9aa7b7;
+  --color-border: #344354;
+  --color-border-strong: #e05a47;
+  --color-primary: #d94a3a;
+  --color-primary-hover: #c23f31;
+  --color-primary-active: #ef6651;
+  --color-accent: #d9823b;
+  --color-accent-light: #e8a35a;
+  --color-food: #d9823b;
+  --color-map-green: #315f45;
   --color-map-yellow-dot: #f5c542;
-  --color-map-red-dot: #e53935;
-  --color-shadow: rgba(0, 0, 0, 0.45);
-  --color-map-bg: #050505;
-  --map-filter: saturate(0.82) contrast(1.05) brightness(1.1);
-  --map-opacity: 0.98;
-  --origin-bg: #ffffff;
+  --color-map-red-dot: #d94a3a;
+  --color-shadow: rgba(6, 13, 24, 0.34);
+  --color-map-bg: #0f1720;
+  --map-filter: saturate(0.82) brightness(1.24) contrast(0.96);
+  --map-opacity: 1;
+  --origin-bg: #f8fafc;
   --origin-dot: #111827;
 }
 
@@ -91,7 +91,7 @@ a {
   border: 1px solid var(--color-border-strong);
   background: color-mix(in srgb, var(--color-surface) 92%, transparent);
   box-shadow:
-    0 0 24px rgba(225, 29, 36, 0.2),
+    0 0 18px rgba(217, 74, 58, 0.18),
     0 16px 36px var(--color-shadow);
 }
 
@@ -116,9 +116,9 @@ a {
 
 .wg-control-active {
   border-color: var(--color-accent);
-  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  background: linear-gradient(135deg, #d94a3a 0%, #d9823b 100%);
   color: #ffffff;
-  box-shadow: 0 0 24px rgba(255, 122, 0, 0.35);
+  box-shadow: 0 0 20px rgba(217, 130, 59, 0.28);
 }
 
 .wg-pill {
@@ -140,9 +140,9 @@ a {
 
 .wg-pill-active {
   border-color: transparent;
-  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  background: linear-gradient(135deg, #d94a3a 0%, #d9823b 100%);
   color: #ffffff;
-  box-shadow: 0 0 20px rgba(255, 122, 0, 0.28);
+  box-shadow: 0 0 18px rgba(217, 130, 59, 0.22);
 }
 
 .wg-status,
@@ -158,7 +158,7 @@ a {
 }
 
 .wg-bottom-nav {
-  background: linear-gradient(135deg, #e11d24 0%, #ff7a00 100%);
+  background: linear-gradient(135deg, #d94a3a 0%, #d9823b 100%);
   box-shadow: 0 10px 30px var(--color-shadow);
 }
 

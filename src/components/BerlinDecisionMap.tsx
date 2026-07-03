@@ -115,23 +115,23 @@ const categoryRecommendationQueries: Record<CategoryGroup, string> = {
 
 const categoryPillColors: Record<CategoryGroup, { background: string; text: string }> = {
   all: {
-    background: "linear-gradient(135deg, #E11D24 0%, #FF7A00 100%)",
+    background: "linear-gradient(135deg, #D94A3A 0%, #D9823B 100%)",
     text: "#ffffff",
   },
   cafe: {
-    background: "#FF7A00",
+    background: "#D9853B",
     text: "#ffffff",
   },
   restaurant: {
-    background: "#E11D24",
+    background: "#D33A32",
     text: "#ffffff",
   },
   bakery: {
-    background: "#F5C542",
+    background: "#D6A23A",
     text: "#111827",
   },
   more: {
-    background: "#C9141B",
+    background: "#A9282F",
     text: "#ffffff",
   },
 };
@@ -151,7 +151,7 @@ const categoryColors: Record<string, { pin: string; glow: string }> = {
 };
 
 function getCategoryStyle(category: string) {
-  return categoryColors[category] ?? { pin: "#FF7A00", glow: "rgba(255, 122, 0, 0.34)" };
+  return categoryColors[category] ?? { pin: "#D9853B", glow: "rgba(217, 133, 59, 0.26)" };
 }
 
 function createSmallPlacePinIcon(place: MapPlace) {
@@ -174,11 +174,11 @@ function createSmallPlacePinIcon(place: MapPlace) {
 function createPinIcon(place: RecommendedPlace, rank: number) {
   const size = rank === 0 ? 46 : 34;
   const style = categoryColors[place.category] ?? {
-    pin: "#FF7A00",
-    glow: "rgba(255, 122, 0, 0.34)",
+    pin: "#D9853B",
+    glow: "rgba(217, 133, 59, 0.26)",
   };
   const background =
-    rank === 0 ? "linear-gradient(135deg, #E11D24 0%, #FF7A00 100%)" : style.pin;
+    rank === 0 ? "linear-gradient(135deg, #D94A3A 0%, #D9823B 100%)" : style.pin;
 
   return L.divIcon({
     className: "wherego-pin",
@@ -186,7 +186,7 @@ function createPinIcon(place: RecommendedPlace, rank: number) {
       <button
         aria-label="${place.name}"
         class="wherego-pin-button"
-        style="width:${size}px;height:${size}px;background:${background};box-shadow:0 0 0 8px ${style.glow}, 0 0 24px rgba(255,122,0,.38), 0 14px 28px rgba(0,0,0,.48);"
+        style="width:${size}px;height:${size}px;background:${background};box-shadow:0 0 0 8px ${style.glow}, 0 0 20px rgba(217,130,59,.26), 0 14px 28px rgba(6,13,24,.32);"
       >
         <span>${rank + 1}</span>
       </button>
